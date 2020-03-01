@@ -7,7 +7,7 @@ import xlsxwriter
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.filedialog import askopenfilename
-from SQLStatistics.global_param import CHAR2NUM
+from Toolkit.Windows.SQLStatistics.global_param import CHAR2NUM
 from xlsxwriter.exceptions import FileCreateError
 
 

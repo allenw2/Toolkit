@@ -6,8 +6,8 @@ from tkinter import messagebox
 from tkinter.filedialog import askdirectory
 
 
-from CodeCounter.tk_calendar import Calendar
-from CodeCounter.get_path import CMD_PATH, BIN_PATH
+from Toolkit.Windows.CodeCounter.tk_calendar import Calendar
+from Toolkit.Windows.CodeCounter.get_path import CMD_PATH, BIN_PATH
 
 SPECIAL_CHAR = r'[^a-zA-z0-9,\w]'
 
