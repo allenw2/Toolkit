@@ -1,3 +1,5 @@
 Host {alias}
     HostName {ip}
     User {user}
+
+test msg
