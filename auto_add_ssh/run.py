@@ -32,7 +32,7 @@ def ip_verify(ip):
         ip = re.search(IP_REGEX, ip).group()
         return ip
     except (Exception, ):
-        error_print('Not a valid ip: {0}'.format(ip))
+        error_print('[ERROR]Not a valid ip: {0}'.format(ip))
 
 
 class SSHAdd:
@@ -136,13 +136,16 @@ if __name__ == '__main__':
     delete_ip_ = option.delete
 
     if not (ip_ or delete_ip_):
-        error_print('请指定 --ip 或者 --delete')
+        error_print('[ERROR]请指定 --ip 或者 --delete')
 
     if ip_ and delete_ip_:
-        error_print('--ip 和 --delete 不能同时指定')
+        error_print('[ERROR]--ip 和 --delete 不能同时指定')
 
     addr = ip_ or delete_ip_
     if not alias_:
+        # 自动生成别名：
+        # 如果 ip 的倒数第二位是 100，则别名为倒数第一位，如 218
+        # 如果 ip 的倒数第二位不是 100，则别名为倒数后两位，如 90.218
         if addr.split('.')[-2] == '100':
             alias_ = addr.split('.')[-1]
         else:
