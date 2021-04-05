@@ -1,5 +1,7 @@
 #!/Users/whl/.virtualenvs/test/bin/python
+# -*- coding: utf-8 -*-
 import os
+import re
 import sys
 import argparse
 import pexpect
@@ -12,8 +14,8 @@ PWD = os.path.realpath(os.path.dirname(__file__))
 TEMPLATE = os.path.join(PWD, 'template')
 CONFIG = os.path.expanduser('~/.ssh/config')
 DEFAULT_USER = 'root'
-DEFAULT_PASSWORD_CTRL = 'letsg0'
-DEFAULT_PASSWORD_MGR = 'cljslrl0620'
+DEFAULT_PASSWORD = 'cljslrl0620'
+IP_REGEX = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
 PASS_OPTION = ['Are you sure you want to continue connecting',
                'password: ',
                'already exist on the remote system']
@@ -21,14 +23,28 @@ DONE_OPTION = ['you wanted were added.',
                'Permission denied, please try again.']
 
 
+def ip_verify(ip):
+    """
+    判断是否是一个有效的日期字符串
+    check if given ip is a valid ip address
+    """
+    try:
+        ip = re.search(IP_REGEX, ip).group()
+        return ip
+    except (Exception, ):
+        error_print('Not a valid ip: {0}'.format(ip))
+
+
 class SSHAdd:
-    def __init__(self, user, ip, password, alias):
+    def __init__(self, user, ip, password, alias, delete_ip):
         self.user = user
         self.ip = ip
         self.password = password
         self.alias = alias
+        self.delete = delete_ip
 
-    def check_config(self):
+    @staticmethod
+    def check_config():
         if not os.path.exists(CONFIG):
             os.mknod(CONFIG)
 
@@ -53,23 +69,34 @@ class SSHAdd:
         if index_pass == 2:
             colored_print_msg('Already has key, Success!', color='green')
 
-    def add_local_conf(self):
+    def handle_local_conf(self):
+        ip = self.ip if self.ip else self.delete
         with open(TEMPLATE, 'r') as template:
             temp = template.read()
-        alias = temp.format(alias=self.alias, ip=self.ip, user=self.user)
+        alias = temp.format(alias=self.alias, ip=ip, user=self.user)
         with open(CONFIG, 'r') as conf:
             exist_alias = conf.read()
-        with open(CONFIG, 'a+') as conf:
-            if alias not in exist_alias:
-                conf.write(alias)
+        if self.ip:
+            # 添加对应的 alias
+            with open(CONFIG, 'a+') as conf:
+                if alias not in exist_alias:
+                    conf.write(alias)
+        else:
+            # 删除对应的 alias
+            with open(CONFIG, 'w') as conf:
+                content = ''.join(exist_alias.split(alias))
+                conf.write(content)
 
     def run(self):
-        self.add_local_conf()
-        self.copy_id()
+        self.handle_local_conf()
+        if self.ip:
+            self.copy_id()
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='add-ssh',
+                                     usage='%(prog)s [options]',
+                                     formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--user', '-u',
                         dest='user',
                         default=DEFAULT_USER,
@@ -78,12 +105,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--ip', '-i',
                         dest='ip',
-                        type=str,
+                        type=ip_verify,
                         help='SSH login ip')
 
     parser.add_argument('--password', '-p',
                         dest='password',
-                        default=DEFAULT_PASSWORD_MGR,
+                        default=DEFAULT_PASSWORD,
                         type=str,
                         help='SSH login password')
 
@@ -92,12 +119,10 @@ if __name__ == '__main__':
                         type=str,
                         help='SSH login alias')
 
-    parser.add_argument('--type', '-t',
-                        dest='type',
-                        default='mgr',
-                        choices=['mgr', 'ctrl'],
-                        type=str,
-                        help='Node type, ctrl_node or mgr_node')
+    parser.add_argument('--delete', '-d',
+                        dest='delete',
+                        type=ip_verify,
+                        help='delete alias of given ip')
 
     option = parser.parse_args()
     if len(sys.argv) == 1:
@@ -108,17 +133,20 @@ if __name__ == '__main__':
     ip_ = option.ip
     password_ = option.password
     alias_ = option.alias
-    type_ = option.type
+    delete_ip_ = option.delete
 
-    if not ip_:
-        error_print('IP address must be configured!')
+    if not (ip_ or delete_ip_):
+        error_print('请指定 --ip 或者 --delete')
 
+    if ip_ and delete_ip_:
+        error_print('--ip 和 --delete 不能同时指定')
+
+    addr = ip_ or delete_ip_
     if not alias_:
-        alias_ = ip_.split('.')[-1]
+        if addr.split('.')[-2] == '100':
+            alias_ = addr.split('.')[-1]
+        else:
+            alias_ = '.'.join(addr.split('.')[-2:])
 
-    if type_ == 'ctrl':
-        if not password_:
-            password_ = DEFAULT_PASSWORD_CTRL
-
-    s = SSHAdd(user_, ip_, password_, alias_)
+    s = SSHAdd(user_, ip_, password_, alias_, delete_ip_)
     s.run()
