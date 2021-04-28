@@ -1,4 +1,4 @@
-#!/Users/whl/.virtualenvs/test/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
 import re
